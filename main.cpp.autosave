@@ -1,0 +1,130 @@
+#include <iostream>
+#include <vector>
+#include <utility>
+#include <fstream>
+
+using namespace std;
+
+struct chick
+{
+    long position, speed;
+    bool flag;
+};
+
+typedef vector<chick> chick_list;
+
+bool is_fast_enough(chick c, long barn, long time)        { return c.position + c.speed * time >= barn; }
+
+void swap (chick &a, chick &b, long & swap_counter)      { swap(a,b); swap_counter++; }
+
+int use_crane (chick_list & l, long chick_index, long & swaps)
+{
+    int i;
+    for (i=chick_index; i<l.size()-1; i++)
+    {
+        chick & curr = l[i];
+        chick & next = l[i+1];
+
+        if (curr.position > next.position)
+        {
+            if (curr.flag && !next.flag)
+            {
+                swap(curr,next, swaps);
+                continue;
+            }
+            else
+                curr.position = next.position;
+        }
+        break;
+    }
+    return i;
+}
+
+long update (chick_list & l, long & swaps, long barn, int min_chick_finished)
+{
+    long chick_finished = 0;
+
+    chick & last = l[l.size()-1];
+
+    if ((last.position += last.speed) >= barn) { chick_finished++; }
+
+    if (chick_finished >= min_chick_finished) return chick_finished;
+
+    for (int i=l.size()-1; i>0; i--)
+    {
+        chick & next = l[i];
+        chick & cur = l[i-1];
+
+        if (chick_finished >= min_chick_finished) return chick_finished;
+
+        if ((cur.position += cur.speed) > next.position)
+        {
+            if (cur.flag && ! next.flag)
+                use_crane(l, i-1, swaps);
+            else
+                cur.position = next.position;
+        }
+
+        if (cur.position >= barn) { chick_finished++; continue; }
+    }
+
+    return chick_finished;
+}
+
+/*
+An even simpler approach to this problem is to just count the number of slowpokes in front of each
+"candidate" (the ones that can actually finish the race in time) and then sum all the numbers.
+
+Example:
+
+candidate a: three slowpokes ahead
+candidate b: four slowpokes ahead
+
+The number of swaps for a and b to finish the race is seven.
+*/
+void picking_up_chicks (string input_file, string output_file)
+{
+    ifstream in (input_file.c_str());
+    ofstream out (output_file.c_str());
+
+    long C;
+    in >> C;
+
+    for (long j=1; j<=C; j++)
+    {
+        long N, K, B, T, swap_counter = 0;
+        in >> N >> K >> B >> T;
+
+        chick_list l(N);
+
+        for (long i=0; i<N; i++)
+            in >> l[i].position;
+        for (long i=0; i<N; i++)
+            in >> l[i].speed;
+        for (long i=N-1; i>=0; i--)
+        {
+            chick & c = l[i];
+            c.flag = (K-- > 0) && is_fast_enough(c, B, T);
+        }
+
+        while (T--)
+            if (update(l, swap_counter, B, K) >= K)
+                break;
+
+        out << "Case #" << j << ": " << swap_counter << endl;
+    }
+
+    in.close();
+    out.close();
+}
+
+int main()
+{
+    string path = "/Users/tyeung/Google Drive/google code jam/picking_up_chicks/";
+    string file = "B-large-practice";
+
+    picking_up_chicks(path + file + ".in", path + file + ".txt");
+
+    return 0;
+}
+
